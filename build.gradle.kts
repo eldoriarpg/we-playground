@@ -14,7 +14,8 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper", "paper-api", "1.19.3-R0.1-SNAPSHOT")
-    compileOnly("com.sk89q.worldedit", "worldedit-bukkit", "7.2.13")
+    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Core:2.5.2")
+    compileOnly("com.fastasyncworldedit:FastAsyncWorldEdit-Bukkit:2.5.2")
 }
 
 tasks {
