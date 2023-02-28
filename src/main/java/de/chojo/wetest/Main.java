@@ -4,6 +4,7 @@ import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormats;
@@ -45,17 +46,29 @@ public class Main extends JavaPlugin {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         Player player = (Player) sender;
         EditSession session;
-        if (args.length > 0 && args[0].equalsIgnoreCase("true")) {
+        Extent extent;
+        if (args.length > 0 && args[0].equalsIgnoreCase("mutable")) {
+            // Case 1
+            // session with mutable world and paste in session
             sender.sendMessage("Pasting in real extent");
             session = worldEdit.newEditSessionBuilder().actor(BukkitAdapter.adapt(player)).world(BukkitAdapter.adapt(player.getWorld())).build();
+            extent = session;
+        }else if (args.length > 0 && args[0].equalsIgnoreCase("explicit")) {
+            // session with immutable world and paste in immutable world
+            ImmutableWorld immutableWorld = new ImmutableWorld(player.getWorld());
+            session = worldEdit.newEditSessionBuilder().actor(BukkitAdapter.adapt(player)).world(immutableWorld).build();
+            extent = immutableWorld;
+            sender.sendMessage("session with immutable world and paste in immutable world");
         } else {
+            // session with immutable world and paste in session
             sender.sendMessage("Pasting in fake extent");
             ImmutableWorld immutableWorld = new ImmutableWorld(player.getWorld());
             session = worldEdit.newEditSessionBuilder().actor(BukkitAdapter.adapt(player)).world(immutableWorld).build();
+            extent = session;
         }
         try (session) {
             ClipboardHolder clipboardHolder = new ClipboardHolder(loadSchematic());
-            Operation paste = clipboardHolder.createPaste(session)
+            Operation paste = clipboardHolder.createPaste(extent)
                     .to(BukkitAdapter.adapt(player.getLocation()).toVector().toBlockPoint())
                     .build();
             Operations.complete(paste);
