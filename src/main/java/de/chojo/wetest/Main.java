@@ -63,7 +63,7 @@ public class Main extends JavaPlugin {
             // session with immutable world and paste in session
             sender.sendMessage("Pasting in fake extent");
             ImmutableWorld immutableWorld = new ImmutableWorld(player.getWorld());
-            session = worldEdit.newEditSessionBuilder().actor(BukkitAdapter.adapt(player)).world(immutableWorld).build();
+            session = worldEdit.newEditSessionBuilder().fastMode(false).actor(BukkitAdapter.adapt(player)).world(immutableWorld).build();
             extent = session;
         }
         try (session) {
