@@ -4,6 +4,7 @@ import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldedit.event.extent.EditSessionEvent;
 import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.extent.clipboard.Clipboard;
 import com.sk89q.worldedit.extent.clipboard.io.ClipboardFormat;
@@ -12,6 +13,7 @@ import com.sk89q.worldedit.function.operation.Operation;
 import com.sk89q.worldedit.function.operation.Operations;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.session.ClipboardHolder;
+import com.sk89q.worldedit.util.eventbus.Subscribe;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -40,6 +42,7 @@ public class Main extends JavaPlugin {
             getLogger().log(Level.SEVERE, "Nope", e);
         }
         getServer().getPluginCommand("wetest").setExecutor(this);
+        registerEditSessionListener();
     }
 
     @Override
@@ -47,30 +50,36 @@ public class Main extends JavaPlugin {
         Player player = (Player) sender;
         EditSession session;
         Extent extent;
-        if (args.length > 0 && args[0].equalsIgnoreCase("mutable")) {
+        if (args.length > 0 && args[0].equalsIgnoreCase("1")) {
             // Case 1
             // session with mutable world and paste in session
             sender.sendMessage("Pasting in real extent");
-            session = worldEdit.newEditSessionBuilder().actor(BukkitAdapter.adapt(player)).world(BukkitAdapter.adapt(player.getWorld())).build();
+            session = worldEdit.newEditSessionBuilder().actor(BukkitAdapter.adapt(player))
+                               .world(BukkitAdapter.adapt(player.getWorld())).build();
             extent = session;
-        }else if (args.length > 0 && args[0].equalsIgnoreCase("explicit")) {
+        } else if (args.length > 0 && args[0].equalsIgnoreCase("2")) {
             // session with immutable world and paste in immutable world
             ImmutableWorld immutableWorld = new ImmutableWorld(player.getWorld());
-            session = worldEdit.newEditSessionBuilder().actor(BukkitAdapter.adapt(player)).world(immutableWorld).build();
+            session = worldEdit.newEditSessionBuilder().actor(BukkitAdapter.adapt(player)).world(immutableWorld)
+                               .build();
             extent = immutableWorld;
             sender.sendMessage("session with immutable world and paste in immutable world");
-        } else {
+        } else if (args.length > 0 && args[0].equalsIgnoreCase("3")) {
             // session with immutable world and paste in session
-            sender.sendMessage("Pasting in fake extent");
+            sender.sendMessage("session with immutable world and paste in session");
             ImmutableWorld immutableWorld = new ImmutableWorld(player.getWorld());
-            session = worldEdit.newEditSessionBuilder().actor(BukkitAdapter.adapt(player)).world(immutableWorld).build();
+            session = worldEdit.newEditSessionBuilder().actor(BukkitAdapter.adapt(player)).world(immutableWorld)
+                               .build();
             extent = session;
+        } else {
+            sender.sendMessage("Choose a case. 1, 2 or 3");
+            return true;
         }
         try (session) {
             ClipboardHolder clipboardHolder = new ClipboardHolder(loadSchematic());
             Operation paste = clipboardHolder.createPaste(extent)
-                    .to(BukkitAdapter.adapt(player.getLocation()).toVector().toBlockPoint())
-                    .build();
+                                             .to(BukkitAdapter.adapt(player.getLocation()).toVector().toBlockPoint())
+                                             .build();
             Operations.complete(paste);
         } catch (IOException | WorldEditException e) {
             getLogger().log(Level.SEVERE, "Nope", e);
@@ -89,6 +98,19 @@ public class Main extends JavaPlugin {
             var centerY = clipboard.getMinimumPoint().getBlockY();
             clipboard.setOrigin(BlockVector3.at(centerX, centerY, centerZ));
             return clipboard;
+        }
+    }
+
+    public void registerEditSessionListener() {
+        worldEdit.getEventBus().register(new EventListener());
+    }
+
+    public static class EventListener {
+        @Subscribe
+        public void onEditSessionEvent(EditSessionEvent event) {
+            if(event.getStage() == EditSession.Stage.BEFORE_CHANGE){
+                event.setExtent(new CapturingExtend(event.getExtent()));
+            }
         }
     }
 }
